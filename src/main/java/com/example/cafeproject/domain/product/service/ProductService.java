@@ -3,16 +3,16 @@ package com.example.cafeproject.domain.product.service;
 import com.example.cafeproject.domain.product.dto.GetProductResponse;
 import com.example.cafeproject.domain.product.entity.Product;
 import com.example.cafeproject.domain.product.repository.ProductRepository;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ProductService {
-    private ProductRepository productRepository;
+    private final ProductRepository productRepository;
 
     @Transactional(readOnly = true)
     public List<GetProductResponse> getAllProducts() {
