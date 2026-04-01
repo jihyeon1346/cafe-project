@@ -18,7 +18,7 @@ public class PointService {
     private final PointChargeService pointChargeService;
     private final UserRepository userRepository;
 
-    @DistributedLock(key = "'point:lock:' + #request.userId()", waitTime = 5, leaseTime = 10)
+    @DistributedLock(key = "'point:lock:' + #request.userId()")
     public ChargePointResponse charge(ChargePointRequest request) {
         if (request.amount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidAmountException("충전 금액은 1원 이상이어야 합니다.");
