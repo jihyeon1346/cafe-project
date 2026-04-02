@@ -1,13 +1,17 @@
 package com.example.cafeproject.domain.order.dto;
 
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
 
-public record CreateOrderRequest(
+import java.util.List;
 
-        @NotNull(message = "사용자 ID는 필수입니다.")
-        Long userId,
+@Getter
+public class CreateOrderRequest {
 
-        @NotNull(message = "메뉴 ID는 필수입니다.")
-        Long productId
-) {
+    @NotNull(message = "사용자 ID는 필수입니다.")
+    private Long userId;
+
+    @NotEmpty(message = "주문 상품은 최소 1개 이상이어야 합니다.")
+    private List<OrderItemRequest> items;
 }

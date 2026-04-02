@@ -1,6 +1,7 @@
 package com.example.cafeproject.domain.product.service;
 
 import com.example.cafeproject.domain.product.dto.GetProductResponse;
+import com.example.cafeproject.domain.product.dto.PopularProductResponse;
 import com.example.cafeproject.domain.product.entity.Product;
 import com.example.cafeproject.domain.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,5 +27,9 @@ public class ProductService {
                         p.getCreatedAt()
                 ))
                 .toList();
+    }
+
+    public List<PopularProductResponse> getPopularProducts() {
+        return null;
     }
 }

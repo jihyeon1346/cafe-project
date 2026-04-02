@@ -18,13 +18,13 @@ public class PointService {
     private final PointChargeService pointChargeService;
     private final UserRepository userRepository;
 
-    @DistributedLock(key = "'point:lock:' + #request.userId()")
+    @DistributedLock(key = "'point:lock:' + #request.getUserId()")
     public ChargePointResponse charge(ChargePointRequest request) {
-        if (request.amount().compareTo(BigDecimal.ZERO) <= 0) {
+        if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidAmountException("충전 금액은 1원 이상이어야 합니다.");
         }
 
-        userRepository.findById(request.userId())
+        userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("존재하지 않는 유저 입니다."));
 
         return pointChargeService.charge(request);

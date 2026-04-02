@@ -20,21 +20,21 @@ public class PointChargeService {
     @Transactional
     public ChargePointResponse charge(ChargePointRequest request) {
         Point point = pointRepository
-                .findByUserId(request.userId())
-                .orElseGet(() -> pointRepository.save(new Point(request.userId())));
+                .findByUserId(request.getUserId())
+                .orElseGet(() -> pointRepository.save(new Point(request.getUserId())));
 
-        point.charge(request.amount());
+        point.charge(request.getAmount());
 
         PointTransaction transaction = PointTransaction.charge(
-                request.amount(),
+                request.getAmount(),
                 point.getBalance(),
-                request.userId()
+                request.getUserId()
         );
         pointTransactionRepository.save(transaction);
 
         return new ChargePointResponse(
-                request.userId(),
-                request.amount(),
+                request.getUserId(),
+                request.getAmount(),
                 point.getBalance(),
                 point.getUpdatedAt()
         );

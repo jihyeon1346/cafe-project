@@ -4,7 +4,6 @@ import com.example.cafeproject.common.annotation.DistributedLock;
 import com.example.cafeproject.common.exception.UserNotFoundException;
 import com.example.cafeproject.domain.order.dto.CreateOrderRequest;
 import com.example.cafeproject.domain.order.dto.CreateOrderResponse;
-import com.example.cafeproject.domain.order_item.service.OrderItemService;
 import com.example.cafeproject.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,9 +15,9 @@ public class OrderService {
     private final OrderItemService orderItemService;
     private final UserRepository userRepository;
 
-    @DistributedLock(key = "'order:lock:' + #request.userId()")
+    @DistributedLock(key = "'order:lock:' + #request.getUserId()")
     public CreateOrderResponse order(CreateOrderRequest request) {
-        userRepository.findById(request.userId())
+        userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("존재하지 않는 유저 입니다."));
 
         return orderItemService.order(request);
