@@ -1,6 +1,7 @@
 package com.example.cafeproject.domain.product.entity;
 
 import com.example.cafeproject.common.entity.BaseEntity;
+import com.example.cafeproject.common.exception.InsufficientStockException;
 import com.example.cafeproject.domain.product.consts.ProductStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -45,7 +46,7 @@ public class Product extends BaseEntity {
 
     public void deductQuantity(long count) {
         if (this.quantity < count) {
-            throw new IllegalStateException("재고가 부족합니다.");
+            throw new InsufficientStockException("재고가 부족합니다.");
         }
         this.quantity -= count;
         if (this.quantity == 0) {

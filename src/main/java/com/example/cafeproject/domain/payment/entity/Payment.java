@@ -31,12 +31,14 @@ public class Payment extends BaseEntity {
 
     private LocalDateTime payAt;
 
+    private Payment(BigDecimal amount, Long orderId, PaymentStatus status, LocalDateTime payAt) {
+        this.amount = amount;
+        this.orderId = orderId;
+        this.status = status;
+        this.payAt = payAt;
+    }
+
     public static Payment success(BigDecimal amount, Long orderId) {
-        Payment payment = new Payment();
-        payment.amount = amount;
-        payment.status = PaymentStatus.SUCCESS;
-        payment.orderId = orderId;
-        payment.payAt = LocalDateTime.now();
-        return payment;
+        return new Payment(amount, orderId, PaymentStatus.SUCCESS, LocalDateTime.now());
     }
 }

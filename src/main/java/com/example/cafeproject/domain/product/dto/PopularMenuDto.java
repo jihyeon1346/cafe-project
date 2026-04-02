@@ -2,8 +2,6 @@ package com.example.cafeproject.domain.product.dto;
 
 import lombok.Getter;
 
-import java.math.BigDecimal;
-
 @Getter
 public class PopularMenuDto {
     private final Long productId;

@@ -7,6 +7,7 @@ import com.example.cafeproject.domain.product.entity.Product;
 import com.example.cafeproject.domain.product.repository.ProductRepository;
 import com.example.cafeproject.infrastructure.redis.PopularMenuRedisService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProductService {
@@ -43,13 +45,13 @@ public class ProductService {
     public List<PopularProductResponse> getPopularProducts() {
         List<PopularMenuDto> topProducts = popularMenuRedisService.getTopProducts(POPULAR_MENU_LIMIT);
 
-        List<Long> productIds = topProducts.stream()
-                .map(PopularMenuDto::getProductId)
-                .toList();
-
         if (topProducts.isEmpty()) {
             return List.of();
         }
+
+        List<Long> productIds = topProducts.stream()
+                .map(PopularMenuDto::getProductId)
+                .toList();
 
         Map<Long, Product> productMap = productRepository.findAllById(productIds)
                 .stream()
@@ -59,14 +61,18 @@ public class ProductService {
         for (int i = 0; i < topProducts.size(); i++) {
             PopularMenuDto menu = topProducts.get(i);
             Product product = productMap.get(menu.getProductId());
-            if (product != null) {
-                result.add(new PopularProductResponse(
-                        i + 1, product.getId(),
-                        product.getName(),
-                        product.getPrice(),
-                        menu.getOrderCount(),
-                        product.getCreatedAt()));
+
+            if (product == null) {
+                log.warn("DB에 없는 상품 id: {}", menu.getProductId());
+                continue;
             }
+
+            result.add(new PopularProductResponse(
+                    i + 1, product.getId(),
+                    product.getName(),
+                    product.getPrice(),
+                    menu.getOrderCount(),
+                    product.getCreatedAt()));
         }
         return result;
     }
