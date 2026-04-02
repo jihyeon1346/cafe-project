@@ -17,6 +17,7 @@ import com.example.cafeproject.domain.point.repository.PointRepository;
 import com.example.cafeproject.domain.point_transaction.entity.PointTransaction;
 import com.example.cafeproject.domain.point_transaction.repository.PointTransactionRepository;
 import com.example.cafeproject.domain.product.entity.Product;
+import com.example.cafeproject.domain.product.service.PopularMenuRedisService;
 import com.example.cafeproject.domain.product.repository.ProductRepository;
 import com.example.cafeproject.infrastructure.platform.DataPlatformClient;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class OrderItemService {
     private final PointTransactionRepository pointTransactionRepository;
     private final PaymentRepository paymentRepository;
     private final DataPlatformClient dataplatformClient;
+    private final PopularMenuRedisService popularMenuRedisService;
 
     @Transactional
     public CreateOrderResponse order(CreateOrderRequest request) {
@@ -90,6 +92,9 @@ public class OrderItemService {
             orderItemRepository.save(
                     OrderItem.create(product.getId(), savedOrder.getId(), quantity, product.getPrice())
             );
+
+            // 인기 메뉴 ZSet 점수
+            popularMenuRedisService.incrementScore(product.getId(), quantity);
 
             // 데이터 플랫폼 전송
             dataplatformClient.send(
