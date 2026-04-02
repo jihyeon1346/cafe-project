@@ -33,6 +33,7 @@ public class Point {
     public Point(Long userId) {
         this.userId = userId;
         this.balance = BigDecimal.ZERO;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void charge(BigDecimal amount) {
@@ -40,6 +41,9 @@ public class Point {
     }
 
     public void use(BigDecimal amount) {
+        if(this.balance.subtract(amount).compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("잔액이 부족합니다.");
+        }
         this.balance = this.balance.subtract(amount);
     }
 }

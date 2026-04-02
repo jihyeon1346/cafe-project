@@ -17,7 +17,7 @@ import com.example.cafeproject.domain.point.repository.PointRepository;
 import com.example.cafeproject.domain.point_transaction.entity.PointTransaction;
 import com.example.cafeproject.domain.point_transaction.repository.PointTransactionRepository;
 import com.example.cafeproject.domain.product.entity.Product;
-import com.example.cafeproject.domain.product.service.PopularMenuRedisService;
+import com.example.cafeproject.infrastructure.redis.PopularMenuRedisService;
 import com.example.cafeproject.domain.product.repository.ProductRepository;
 import com.example.cafeproject.infrastructure.platform.DataPlatformClient;
 import lombok.RequiredArgsConstructor;
@@ -54,13 +54,6 @@ public class OrderItemService {
 
             if (!product.isOnSale()) {
                 throw new ProductNotOnSaleException("주문할 수 없는 메뉴입니다. : " + product.getName());
-            }
-
-            if (product.getQuantity() < itemRequest.getQuantity()) {
-                throw new IllegalStateException(
-                        String.format("재고가 부족합니다. 메뉴: %s, 요청 수량: %d, 재고: %d",
-                                product.getName(), itemRequest.getQuantity(), product.getQuantity())
-                );
             }
 
             totalAmount = totalAmount.add(

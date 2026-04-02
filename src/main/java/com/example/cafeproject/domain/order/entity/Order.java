@@ -33,13 +33,7 @@ public class Order extends BaseEntity {
     public Order(Long userId, BigDecimal amount) {
         this.userId = userId;
         this.amount = amount;
-    }
-
-    @PrePersist
-    public void prePersist() {
-        if (this.orderNum == null) {
-            this.orderNum = UUID.randomUUID().toString();
-        }
+        this.orderNum = UUID.randomUUID().toString();
     }
 
     public void softDelete(){
