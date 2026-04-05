@@ -25,10 +25,10 @@ public class PopularMenuRedisService {
 
     private final StringRedisTemplate redisTemplate;
 
-    public void incrementScore(Long productId, Long quantity) {
-        String todayKey = buildDailyKey(LocalDate.now());
-        redisTemplate.opsForZSet().incrementScore(todayKey, String.valueOf(productId), quantity.doubleValue());
-        redisTemplate.expire(todayKey, Duration.ofDays(TTL_DAYS));
+    public void incrementScore(Long productId, Long quantity, LocalDate date) {
+        String key = buildDailyKey(date);
+        redisTemplate.opsForZSet().incrementScore(key, String.valueOf(productId), quantity.doubleValue());
+        redisTemplate.expire(key, Duration.ofDays(TTL_DAYS));
     }
 
     public List<PopularMenuDto> getTopProducts(int limit) {
@@ -37,16 +37,23 @@ public class PopularMenuRedisService {
             return List.of();
         }
 
-        String unionKey = UNION_KEY_PREFIX + LocalDate.now().format(DATE_FORMATTER);
-        redisTemplate.opsForZSet().unionAndStore(
-                dailyKeys.get(0),
-                dailyKeys.subList(1, dailyKeys.size()),
-                unionKey
-        );
-        redisTemplate.expire(unionKey, Duration.ofMinutes(1));
+        String queryKey;
+
+        if (dailyKeys.size() == 1) {
+            queryKey = dailyKeys.get(0);
+        } else {
+            // 키가 2개 이상이면 union 후 조회
+            queryKey = UNION_KEY_PREFIX + LocalDate.now().format(DATE_FORMATTER);
+            redisTemplate.opsForZSet().unionAndStore(
+                    dailyKeys.get(0),
+                    dailyKeys.subList(1, dailyKeys.size()),
+                    queryKey
+            );
+            redisTemplate.expire(queryKey, Duration.ofMinutes(1));
+        }
 
         Set<ZSetOperations.TypedTuple<String>> topSet =
-                redisTemplate.opsForZSet().reverseRangeWithScores(unionKey, 0, limit - 1);
+                redisTemplate.opsForZSet().reverseRangeWithScores(queryKey, 0, limit - 1);
 
         if (topSet == null || topSet.isEmpty()) {
             return List.of();

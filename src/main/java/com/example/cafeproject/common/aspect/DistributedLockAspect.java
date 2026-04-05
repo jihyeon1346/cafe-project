@@ -9,6 +9,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.core.annotation.Order;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -20,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Aspect
 @Component
+@Order(1)
 @RequiredArgsConstructor
 public class DistributedLockAspect {
 

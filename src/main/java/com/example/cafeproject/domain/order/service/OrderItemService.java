@@ -1,6 +1,5 @@
 package com.example.cafeproject.domain.order.service;
 
-import com.example.cafeproject.common.exception.InsufficientPointException;
 import com.example.cafeproject.common.exception.ProductNotFoundException;
 import com.example.cafeproject.common.exception.ProductNotOnSaleException;
 import com.example.cafeproject.domain.order.dto.CreateOrderRequest;
@@ -8,23 +7,21 @@ import com.example.cafeproject.domain.order.dto.CreateOrderResponse;
 import com.example.cafeproject.domain.order.dto.OrderItemRequest;
 import com.example.cafeproject.domain.order.entity.Order;
 import com.example.cafeproject.domain.order.entity.OrderItem;
+import com.example.cafeproject.domain.order.event.OrderItemCompletedEvent;
 import com.example.cafeproject.domain.order.repository.OrderItemRepository;
 import com.example.cafeproject.domain.order.repository.OrderRepository;
-import com.example.cafeproject.domain.payment.entity.Payment;
-import com.example.cafeproject.domain.payment.repository.PaymentRepository;
-import com.example.cafeproject.domain.point.entity.Point;
-import com.example.cafeproject.domain.point.repository.PointRepository;
-import com.example.cafeproject.domain.point_transaction.entity.PointTransaction;
-import com.example.cafeproject.domain.point_transaction.repository.PointTransactionRepository;
+import com.example.cafeproject.domain.payment.service.PaymentService;
 import com.example.cafeproject.domain.product.entity.Product;
-import com.example.cafeproject.infrastructure.redis.PopularMenuRedisService;
 import com.example.cafeproject.domain.product.repository.ProductRepository;
-import com.example.cafeproject.infrastructure.platform.DataPlatformClient;
+import com.example.cafeproject.domain.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,12 +31,10 @@ public class OrderItemService {
 
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
-    private final PointRepository pointRepository;
     private final OrderRepository orderRepository;
-    private final PointTransactionRepository pointTransactionRepository;
-    private final PaymentRepository paymentRepository;
-    private final DataPlatformClient dataplatformClient;
-    private final PopularMenuRedisService popularMenuRedisService;
+    private final PaymentService paymentService;
+    private final ApplicationEventPublisher eventPublisher;
+    private final ProductService productService;
 
     @Transactional
     public CreateOrderResponse order(CreateOrderRequest request) {
@@ -62,58 +57,47 @@ public class OrderItemService {
             products.add(product);
         }
 
-        // 포인트 잔액 확인
-        Point point = pointRepository.findByUserId(request.getUserId())
-                .orElseGet(() -> pointRepository.save(new Point(request.getUserId())));
-
-        if (point.getBalance().compareTo(totalAmount) < 0) {
-            throw new InsufficientPointException("포인트가 부족합니다.");
-        }
-
         // 주문 생성
         Order savedOrder = new Order(request.getUserId(), totalAmount);
         orderRepository.save(savedOrder);
 
-        // 재고 차감
+        // 결제
+        BigDecimal remainingBalance = paymentService.pay(
+                request.getUserId(), savedOrder.getId(), totalAmount
+        );
+
+        // 재고 차감 및 주문 상품 저장
         List<String> productNames = new ArrayList<>();
+        String paidAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+
         for (int i = 0; i < products.size(); i++) {
             Product product = products.get(i);
             Long quantity = request.getItems().get(i).getQuantity();
 
-            product.deductQuantity(quantity);
+            productService.deductStock(product.getId(), quantity);
 
             orderItemRepository.save(
                     OrderItem.create(product.getId(), savedOrder.getId(), quantity, product.getPrice())
             );
 
-            // 인기 메뉴 ZSet 점수
-            popularMenuRedisService.incrementScore(product.getId(), quantity);
+            productNames.add(product.getName());
 
-            // 데이터 플랫폼 전송
-            dataplatformClient.send(
+            eventPublisher.publishEvent(new OrderItemCompletedEvent(
+                    savedOrder.getId(),
                     request.getUserId(),
                     product.getId(),
-                    product.getPrice().multiply(BigDecimal.valueOf(quantity))
-            );
-
-            productNames.add(product.getName());
+                    quantity,
+                    product.getPrice().multiply(BigDecimal.valueOf(quantity)),
+                    paidAt
+            ));
         }
-
-        // 포인트 차감
-        point.use(totalAmount);
-        pointTransactionRepository.save(
-                PointTransaction.use(totalAmount, point.getBalance(), request.getUserId(), savedOrder.getId())
-        );
-
-        // 결제 완료
-        paymentRepository.save(Payment.success(totalAmount, savedOrder.getId()));
 
         return new CreateOrderResponse(
                 savedOrder.getId(),
                 savedOrder.getOrderNum(),
                 productNames,
                 totalAmount,
-                point.getBalance(),
+                remainingBalance,
                 savedOrder.getCreatedAt()
         );
     }

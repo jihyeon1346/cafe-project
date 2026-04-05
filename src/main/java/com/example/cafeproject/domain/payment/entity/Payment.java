@@ -11,8 +11,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table (name = "payments")
-@NoArgsConstructor (access = AccessLevel.PROTECTED)
+@Table(name = "payments")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 public class Payment extends BaseEntity {
     @Id
@@ -31,14 +31,15 @@ public class Payment extends BaseEntity {
 
     private LocalDateTime payAt;
 
-    private Payment(BigDecimal amount, Long orderId, PaymentStatus status, LocalDateTime payAt) {
+    private Payment(BigDecimal amount, Long orderId, PaymentStatus status) {
         this.amount = amount;
         this.orderId = orderId;
         this.status = status;
-        this.payAt = payAt;
     }
 
     public static Payment success(BigDecimal amount, Long orderId) {
-        return new Payment(amount, orderId, PaymentStatus.SUCCESS, LocalDateTime.now());
+        Payment payment = new Payment(amount, orderId, PaymentStatus.SUCCESS);
+        payment.payAt = LocalDateTime.now();
+        return payment;
     }
 }

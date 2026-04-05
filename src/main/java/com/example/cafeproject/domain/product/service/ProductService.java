@@ -1,5 +1,7 @@
 package com.example.cafeproject.domain.product.service;
 
+import com.example.cafeproject.common.annotation.DistributedLock;
+import com.example.cafeproject.common.exception.ProductNotFoundException;
 import com.example.cafeproject.domain.product.dto.GetProductResponse;
 import com.example.cafeproject.domain.product.dto.PopularMenuDto;
 import com.example.cafeproject.domain.product.dto.PopularProductResponse;
@@ -9,6 +11,7 @@ import com.example.cafeproject.infrastructure.redis.PopularMenuRedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -75,5 +78,14 @@ public class ProductService {
                     product.getCreatedAt()));
         }
         return result;
+    }
+
+    @DistributedLock(key = "'stock:product:' + #productId", waitTime = 5, leaseTime = 3)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void deductStock(Long productId, Long quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException("존재하지 않는 메뉴입니다."));
+
+        product.deductQuantity(quantity);
     }
 }
