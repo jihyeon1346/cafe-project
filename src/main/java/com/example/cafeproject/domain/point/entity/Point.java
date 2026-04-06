@@ -1,6 +1,6 @@
 package com.example.cafeproject.domain.point.entity;
 
-import com.example.cafeproject.common.exception.InsufficientBalanceException;
+import com.example.cafeproject.common.exception.InsufficientPointException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -42,7 +42,7 @@ public class Point {
 
     public void use(BigDecimal amount) {
         if(this.balance.compareTo(amount) < 0) {
-            throw new InsufficientBalanceException("잔액이 부족합니다.");
+            throw new InsufficientPointException("잔액이 부족합니다.");
         }
         this.balance = this.balance.subtract(amount);
     }
