@@ -2,8 +2,9 @@ package com.example.cafeproject.domain.product.controller;
 
 import com.example.cafeproject.common.dto.ApiResponse;
 import com.example.cafeproject.domain.product.dto.GetProductResponse;
+import com.example.cafeproject.domain.product.dto.PopularProductResponse;
 import com.example.cafeproject.domain.product.service.ProductService;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,9 +15,9 @@ import java.util.List;
 
 @RequestMapping("/api/products")
 @RestController
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ProductController {
-    private ProductService productService;
+    private final ProductService productService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<GetProductResponse>>> getAllProducts() {
@@ -24,5 +25,12 @@ public class ProductController {
                 ApiResponse.success(
                         HttpStatus.OK, "상품 목록 조회 성공", productService.getAllProducts()
                 ));
+    }
+
+    @GetMapping("/popular")
+    public ResponseEntity<ApiResponse<List<PopularProductResponse>>> getPopularProducts() {
+        return ResponseEntity.ok(
+                ApiResponse.success(HttpStatus.OK, "인기 메뉴 조회 성공", productService.getPopularProducts())
+        );
     }
 }

@@ -1,18 +1,34 @@
 package com.example.cafeproject.domain.product.service;
 
+import com.example.cafeproject.common.annotation.DistributedLock;
+import com.example.cafeproject.common.exception.ProductNotFoundException;
 import com.example.cafeproject.domain.product.dto.GetProductResponse;
+import com.example.cafeproject.domain.product.dto.PopularMenuDto;
+import com.example.cafeproject.domain.product.dto.PopularProductResponse;
 import com.example.cafeproject.domain.product.entity.Product;
 import com.example.cafeproject.domain.product.repository.ProductRepository;
-import lombok.AllArgsConstructor;
+import com.example.cafeproject.infrastructure.redis.PopularMenuRedisService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ProductService {
-    private ProductRepository productRepository;
+
+    private static final int POPULAR_MENU_LIMIT = 3;
+
+    private final ProductRepository productRepository;
+    private final PopularMenuRedisService popularMenuRedisService;
 
     @Transactional(readOnly = true)
     public List<GetProductResponse> getAllProducts() {
@@ -26,5 +42,50 @@ public class ProductService {
                         p.getCreatedAt()
                 ))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PopularProductResponse> getPopularProducts() {
+        List<PopularMenuDto> topProducts = popularMenuRedisService.getTopProducts(POPULAR_MENU_LIMIT);
+
+        if (topProducts.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> productIds = topProducts.stream()
+                .map(PopularMenuDto::getProductId)
+                .toList();
+
+        Map<Long, Product> productMap = productRepository.findAllById(productIds)
+                .stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+
+        List<PopularProductResponse> result = new ArrayList<>();
+        for (int i = 0; i < topProducts.size(); i++) {
+            PopularMenuDto menu = topProducts.get(i);
+            Product product = productMap.get(menu.getProductId());
+
+            if (product == null) {
+                log.warn("DB에 없는 상품 id: {}", menu.getProductId());
+                continue;
+            }
+
+            result.add(new PopularProductResponse(
+                    i + 1, product.getId(),
+                    product.getName(),
+                    product.getPrice(),
+                    menu.getOrderCount(),
+                    product.getCreatedAt()));
+        }
+        return result;
+    }
+
+    @DistributedLock(key = "'stock:product:' + #productId", waitTime = 5, leaseTime = 3)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void deductStock(Long productId, Long quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException("존재하지 않는 메뉴입니다."));
+
+        product.deductQuantity(quantity);
     }
 }
